@@ -1,0 +1,44 @@
+# Maven
+target/
+**/target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.restore
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+# If you use a remote repository, you might want to ignore those
+# .mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+**/out/
+
+# Eclipse
+.classpath
+.project
+.settings/
+.cache
+.factorypath
+
+# NetBeans
+nbproject/
+nb-configuration.xml
+nbactions.xml
+nb-build.xml
+
+# VS Code
+.vscode/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Compilation
+*.class
