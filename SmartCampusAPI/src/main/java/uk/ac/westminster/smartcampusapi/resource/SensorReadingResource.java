@@ -62,12 +62,13 @@ public class SensorReadingResource {
         }
 
         // Block readings if sensor is under MAINTENANCE — throws 403
-        if ("MAINTENANCE".equalsIgnoreCase(sensor.getStatus())) {
-            throw new SensorUnavailableException(
-                "Sensor '" + sensorId + "' is currently under MAINTENANCE " +
-                "and cannot accept new readings."
-            );
-        }
+if (sensor.getStatus() != null && 
+        "MAINTENANCE".equalsIgnoreCase(sensor.getStatus())) {
+    throw new SensorUnavailableException(
+        "Sensor '" + sensorId + "' is currently under MAINTENANCE " +
+        "and cannot accept new readings."
+    );
+}
 
         // Auto-generate ID and timestamp
         reading.setId(UUID.randomUUID().toString());
