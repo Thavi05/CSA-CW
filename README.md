@@ -1,4 +1,4 @@
-# 🏛️ Smart Campus Sensor & Room Management API
+#  Smart Campus Sensor & Room Management API
 
 ## 1. API Overview
 
@@ -70,5 +70,49 @@ Or in NetBeans: right-click project → **Run** (auto-deploys to configured Tomc
 curl http://localhost:8080/api/v1/
 ```
 Expected response: JSON object with API metadata and resource links.
+
+---
+## 3. Sample curl Commands
+
+### Create a Room
+```bash
+curl -X POST http://localhost:8080/api/v1/rooms \
+  -H "Content-Type: application/json" \
+  -d '{"id":"LIB-301","name":"Library Quiet Study","capacity":50}'
+```
+
+### Get All Rooms
+```bash
+curl -X GET http://localhost:8080/api/v1/rooms
+```
+
+### Register a Sensor
+```bash
+curl -X POST http://localhost:8080/api/v1/sensors \
+  -H "Content-Type: application/json" \
+  -d '{"id":"TEMP-001","type":"Temperature","status":"ACTIVE","currentValue":0.0,"roomId":"LIB-301"}'
+```
+
+### Filter Sensors by Type
+```bash
+curl -X GET "http://localhost:8080/api/v1/sensors?type=Temperature"
+```
+
+### Post a Sensor Reading
+```bash
+curl -X POST http://localhost:8080/api/v1/sensors/TEMP-001/readings \
+  -H "Content-Type: application/json" \
+  -d '{"value":22.5}'
+```
+
+### Get Reading History
+```bash
+curl -X GET http://localhost:8080/api/v1/sensors/TEMP-001/readings
+```
+
+### Attempt to Delete a Room with Sensors (409 Conflict)
+```bash
+curl -X DELETE http://localhost:8080/api/v1/rooms/LIB-301
+```
 
 ---
