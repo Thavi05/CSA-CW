@@ -186,3 +186,38 @@ The primary benefit is management of complexity through delegation. In a large A
 This separation also makes unit testing significantly easier. Each class can be instantiated and tested independently with mock data, rather than requiring the entire resource hierarchy to be set up together. It also enables team scalability in real world development, where different developers can work on separate resource classes simultaneously without merge conflicts. Compared to a single massive controller class where every nested path is defined as a method, the locator pattern produces a codebase that scales gracefully with the complexity of the domain model and clearly mirrors the hierarchical relationships of the physical system it represents.
 
 ---
+### Part 5.1 - Why 422 is More Semantically Accurate Than 404
+
+The distinction between HTTP 404 and HTTP 422 is a matter of semantic precision. Both indicate that the request cannot be fulfilled, but they communicate fundamentally different diagnoses with different implications for the client developer.
+
+HTTP 404 Not Found means the URL itself does not correspond to any resource on the server. It is the correct response when a client requests `GET /api/v1/rooms/NONEXISTENT`, the path does not resolve to anything. Using 404 for a failed POST to `/api/v1/sensors` would be actively misleading, because the URL `/api/v1/sensors` is perfectly valid and resolves correctly. The server accepted and parsed the request without issue.
+
+HTTP 422 Unprocessable Entity means the server successfully received the request, correctly identified the content type, and fully parsed the JSON body, but cannot act on the semantic instructions within it because they violate a business rule or reference integrity constraint. When a client POSTs a sensor with `"roomId": "FAKE-999"` and that room does not exist, the problem is not the URL, it is the broken reference inside an otherwise well formed payload. 422 communicates this distinction precisely: the request was understood, but the data it contains is semantically invalid.
+
+This precision is critically important for API usability. A client receiving 404 might conclude that the `/sensors` endpoint does not exist and report a routing bug. A client receiving 422 immediately understands that the payload content is the problem and knows to verify that the referenced `roomId` exists before retrying. Accurate status codes reduce debugging time, improve developer experience and are a clear marker of a professionally designed API.
+
+---
+
+### Part 5.2 - Cybersecurity Risks of Exposing Stack Traces
+
+Exposing raw Java stack traces in API responses is classified as an **information disclosure vulnerability** under the OWASP Top 10 security risks. It provides an attacker with a structured map of the application's internal architecture at no cost and with no authorisation required.
+
+**Library versions and framework details:** A stack trace referencing `org.glassfish.jersey.server.ServerRuntime` immediately reveals that the server runs Jersey JAX-RS. The attacker cross-references specific class paths against the CVE (Common Vulnerabilities and Exposures) database to identify known, published exploits targeting that exact version. If the server runs an unpatched version with a known deserialisation vulnerability, the stack trace has provided the precise attack vector.
+
+**Internal file paths and directory structure:** Stack frames include absolute file paths, revealing the server's directory layout. This assists in directory traversal attacks and helps an attacker confirm successful path injection attempts.
+
+**Business logic and class hierarchy:** Method names in stack frames such as `DataStore.getSensor()` or `SensorReadingResource.addReading()` expose the internal design of the application, its data model, service layer structure, and data flow. This enables an attacker to craft targeted inputs designed to exploit specific code paths.
+
+**Exact error locations:** Line numbers in stack frames pinpoint precisely where in the source code an error occurred, dramatically accelerating reverse engineering efforts.
+
+The `GlobalExceptionMapper` in this implementation intercepts all `Throwable` instances, logs full technical details server-side for system administrators only, and returns a generic non-technical 500 message to the client, implementing the principle of least information disclosure and eliminating this entire class of vulnerability.
+
+---
+
+### Part 5.5 - JAX-RS Filters vs Manual Logging
+
+A cross cutting concern is a behaviour that must apply uniformly across the entire application regardless of which specific business function is executing. Logging every HTTP request and response is the canonical example. It must happen for every endpoint equally with no exceptions.
+
+Manually inserting `Logger.info()` calls inside every resource method violates the DRY principle (Don't Repeat Yourself) and creates a fragile, inconsistent implementation. If a new endpoint is added and the developer forgets to add logging, that endpoint becomes invisible in the audit trail. If the log format needs to change, every method across every resource class must be individually updated, which is error-prone and time-consuming.
+
+A JAX-RS filter registered with `@Provider` is applied automatically by the framework to every single request and response without any modification to the resource classes. `ContainerRequestFilter.filter()` executes before the request reaches any resource method, and `ContainerResponseFilter.filter()` executes after every response, including responses generated by exception mappers. This means logging is complete and guaranteed: even requests that result in a 404 or 500 are logged, whereas manual in-method logging would miss those cases entirely since the method body may never execute. This approach keeps resource classes focused exclusively on business logic, produces a consistent and maintainable logging implementation, and follows the Separation of Concerns principle that underpins professional API architecture.
