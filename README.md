@@ -157,3 +157,32 @@ On the **second call** to `DELETE /api/v1/rooms/LIB-301`, the server checks the 
 On every subsequent call, the outcome is identical to the second call: 404, no state change. At no point does a repeated DELETE cause any additional side effect, data corruption, or unintended removal. This satisfies the formal REST definition of idempotency. The response code differs between calls, but idempotency is defined in terms of side effects and state changes, not response codes. This behaviour is critically important in distributed systems where clients may retry requests due to network timeouts. A client that retries a DELETE because it did not receive the first response will not accidentally corrupt the data store.
 
 ---
+### Part 3.1 - @Consumes Media Type Mismatch
+
+The `@Consumes(MediaType.APPLICATION_JSON)` annotation registers a content negotiation contract at the framework level. When a client sends a POST request, the JAX-RS runtime inspects the `Content-Type` header of the incoming request and compares it against the media types declared by all `@Consumes` annotations on the available resource methods.
+
+If the client sends `Content-Type: text/plain` or `Content-Type: application/xml` when the method only declares `application/json`, the JAX-RS runtime finds no matching method and immediately rejects the request with **HTTP 415 Unsupported Media Type** before the request ever reaches the resource method body. No application code is executed. The rejection happens entirely within the framework's request dispatching layer. This is not an application-level exception; it is a content negotiation failure handled by Jersey's `MessageBodyReader` selection mechanism, which scans all registered readers and finds none capable of deserialising the incoming content type into the expected Java object.
+
+This mechanism provides two important guarantees. First, it ensures type safety at the transport boundary. Only correctly formatted JSON payloads can trigger deserialisation into a `Sensor` or `Room` object, preventing malformed input from reaching business logic. Second, it provides a security benefit, clients sending unexpected content types are blocked automatically without any custom validation code and the 415 response signals clearly to the client developer that `Content-Type: application/json` must be set in their request headers.
+
+---
+
+### Part 3.2 - @QueryParam vs Path-Based Filtering
+
+The fundamental distinction between query parameters and path parameters is semantic: a path parameter identifies a specific, discrete resource by its unique identity, while a query parameter modifies or refines what is returned from a collection without implying that a new resource exists.
+
+Consider the two designs side by side. Using a path segment : `GET /api/v1/sensors/type/CO2` implies that `type/CO2` is a named resource in the hierarchy, which violates REST's resource oriented design principle because `CO2` is a filter criterion, not a resource. It also creates a URL collision risk since `{sensorId}` already occupies that path position, requiring additional routing logic to distinguish a fetch-by-ID from a filter-by-type request.
+
+Using a query parameter : `GET /api/v1/sensors?type=CO2` correctly expresses that the client is requesting the `/sensors` collection and applying a refinement. The collection is the resource; the query string is the instruction. This design is also composable. Multiple filters can be combined naturally without changing the URL structure, for example `?type=CO2&status=ACTIVE`. A path-based approach would require deeply nested segments for each additional filter, making URLs brittle and unreadable. Furthermore, `GET /api/v1/sensors` without any parameter naturally returns the full unfiltered collection, which is consistent behaviour requiring no additional endpoint. The `@QueryParam` annotation in JAX-RS exists precisely for this purpose: optional, additive query criteria on collection resources.
+
+---
+
+### Part 4.1 - Sub-Resource Locator Pattern
+
+The Sub-Resource Locator pattern is an architectural technique in JAX-RS where a resource method does not handle an HTTP verb directly, but instead returns an object of another class that JAX-RS then inspects for further `@GET`, `@POST`, and `@DELETE` annotations to handle the remainder of the request. In this implementation, `SensorResource` contains a locator method annotated with `@Path("/{sensorId}/readings")` that returns a new `SensorReadingResource` instance, passing the `sensorId` as a constructor argument to preserve context.
+
+The primary benefit is management of complexity through delegation. In a large API with dozens of nested paths, placing all endpoint logic in a single controller class creates a monolith that becomes increasingly difficult to understand, test, and modify. A method handling `POST /sensors/{id}/readings` has no business sitting alongside a method handling `GET /rooms/{id}`, they address entirely different concerns. The locator pattern enforces the Single Responsibility Principle: `SensorResource` is responsible only for sensor level operations, and `SensorReadingResource` is responsible only for reading-level operations within the context of a specific sensor.
+
+This separation also makes unit testing significantly easier. Each class can be instantiated and tested independently with mock data, rather than requiring the entire resource hierarchy to be set up together. It also enables team scalability in real world development, where different developers can work on separate resource classes simultaneously without merge conflicts. Compared to a single massive controller class where every nested path is defined as a method, the locator pattern produces a codebase that scales gracefully with the complexity of the domain model and clearly mirrors the hierarchical relationships of the physical system it represents.
+
+---
