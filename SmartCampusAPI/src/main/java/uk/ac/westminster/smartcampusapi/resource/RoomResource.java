@@ -120,4 +120,5 @@ public class RoomResource {
         body.put("message", message);
         return body;
     }
+    
 }
