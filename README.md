@@ -4,7 +4,7 @@
 
 This project is a RESTful API built using JAX-RS (Jersey 2.35) and deployed on Apache Tomcat. It provides a comprehensive backend for managing university campus rooms and IoT sensors as part of the "Smart Campus" initiative.
 
-**Base URL:** `http://localhost:8080/api/v1/`
+**Base URL:** `http://localhost:8080/SmartCampusAPI/api/v1/`
 
 **Technology Stack:**
 - Java 17
@@ -65,56 +65,59 @@ Or in NetBeans: right-click project → **Run** (auto-deploys to configured Tomc
 /path/to/tomcat/bin/startup.bat    # Windows
 ```
 
-### Step 5 - Verify the API is Running
+### Step 5 — Verify the API is Running
 ```bash
-curl http://localhost:8080/api/v1/
+curl http://localhost:8080/SmartCampusAPI/api/v1/
 ```
 Expected response: JSON object with API metadata and resource links.
-
 ---
 ## 3. Sample curl Commands
 
+### Verify API is Running
+```bash
+curl -X GET http://localhost:8080/SmartCampusAPI/api/v1/
+```
+
 ### Create a Room
 ```bash
-curl -X POST http://localhost:8080/api/v1/rooms \
+curl -X POST http://localhost:8080/SmartCampusAPI/api/v1/rooms \
   -H "Content-Type: application/json" \
   -d '{"id":"LIB-301","name":"Library Quiet Study","capacity":50}'
 ```
 
 ### Get All Rooms
 ```bash
-curl -X GET http://localhost:8080/api/v1/rooms
+curl -X GET http://localhost:8080/SmartCampusAPI/api/v1/rooms
 ```
 
 ### Register a Sensor
 ```bash
-curl -X POST http://localhost:8080/api/v1/sensors \
+curl -X POST http://localhost:8080/SmartCampusAPI/api/v1/sensors \
   -H "Content-Type: application/json" \
   -d '{"id":"TEMP-001","type":"Temperature","status":"ACTIVE","currentValue":0.0,"roomId":"LIB-301"}'
 ```
 
 ### Filter Sensors by Type
 ```bash
-curl -X GET "http://localhost:8080/api/v1/sensors?type=Temperature"
+curl -X GET "http://localhost:8080/SmartCampusAPI/api/v1/sensors?type=Temperature"
 ```
 
 ### Post a Sensor Reading
 ```bash
-curl -X POST http://localhost:8080/api/v1/sensors/TEMP-001/readings \
+curl -X POST http://localhost:8080/SmartCampusAPI/api/v1/sensors/TEMP-001/readings \
   -H "Content-Type: application/json" \
   -d '{"value":22.5}'
 ```
 
 ### Get Reading History
 ```bash
-curl -X GET http://localhost:8080/api/v1/sensors/TEMP-001/readings
+curl -X GET http://localhost:8080/SmartCampusAPI/api/v1/sensors/TEMP-001/readings
 ```
 
-### Attempt to Delete a Room with Sensors (409 Conflict)
+### Attempt to Delete Room With Sensors (409 Conflict)
 ```bash
-curl -X DELETE http://localhost:8080/api/v1/rooms/LIB-301
+curl -X DELETE http://localhost:8080/SmartCampusAPI/api/v1/rooms/LIB-301
 ```
-
 ---
 ## 4. Conceptual Report - Question Answers
 
